@@ -215,6 +215,7 @@
   (when (null root) (setq root default-directory))
   (cond
    ((member ".git" (directory-files root)) (expand-file-name root))
+   ((member ".hg" (directory-files root)) (expand-file-name root))
    ((equal (expand-file-name root) "/") nil)
    (t (textmate-find-project-root (concat (file-name-as-directory root) "..")))))
 
