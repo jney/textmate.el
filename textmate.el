@@ -51,6 +51,9 @@
 ;; (require 'textmate)
 ;; (textmate-mode)
 
+;;; Depends on imenu
+(require 'imenu)
+
 ;;; Minor mode
 
 (defvar textmate-use-file-cache t
@@ -59,22 +62,39 @@
 (defvar textmate-completing-library 'ido 
   "The library `textmade-goto-symbol' and `textmate-goto-file' should use for completing filenames and symbols (`ido' by default)")
 
-(defvar textmate-completing-function-alist '((ido ido-completing-read) 
-                                             (icicles  icicle-completing-read) 
-                                             (none completing-read)) 
+(defvar *textmate-completing-function-alist* '((ido ido-completing-read) 
+                                               (icicles  icicle-completing-read) 
+                                               (none completing-read)) 
   "The function to call to read file names and symbols from the user")
 
-(defvar textmate-completing-minor-mode-alist 
+(defvar *textmate-completing-minor-mode-alist* 
   `((ido ,(lambda (a) (progn (ido-mode a) (setq ido-enable-flex-matching t)))) 
     (icicles ,(lambda (a) (icy-mode a))) 
     (none ,(lambda (a) ())))
   "The list of functions to enable and disable completing minor modes")
 
-(defvar textmate-mode-map (make-sparse-keymap))
+(defvar *textmate-mode-map* (make-sparse-keymap))
 (defvar *textmate-project-root* nil)
 (defvar *textmate-project-files* '())
 (defvar *textmate-gf-exclude* 
   "/\\.|vendor|fixtures|tmp|log|build|\\.xcodeproj|\\.nib|\\.framework|\\.app|\\.pbproj|\\.pbxproj|\\.xcode|\\.xcodeproj|\\.bundle")
+
+(defvar *textmate-keybindings-list* `((textmate-next-line 
+                                     [A-return]    [M-return])
+                                     (textmate-clear-cache 
+                                      ,(kbd "A-M-t") [(control c)(control t)])
+                                     (align 
+                                      ,(kbd "A-M-]") [(control c)(control a)])
+                                     (indent-according-to-mode 
+                                      ,(kbd "A-M-[") nil)
+                                     (indent-region 
+                                      ,(kbd "A-]")   [(control tab)])
+                                     (comment-or-uncomment-region-or-line 
+                                      ,(kbd "A-/")   [(control c)(control k)])
+                                     (textmate-goto-file 
+                                      ,(kbd "A-t")   [(meta t)])
+                                     (textmate-goto-symbol 
+                                      ,(kbd "A-T")   [(meta T)])))
 
 ;;; Bindings
 
@@ -85,33 +105,22 @@
 
 (defun textmate-bind-keys ()
   (add-hook 'ido-setup-hook 'textmate-ido-fix)
-  (if (boundp 'aquamacs-version) 
-      (textmate-bind-aquamacs-keys)
-    (textmate-bind-carbon-keys)))
 
-(defun textmate-bind-aquamacs-keys ()
-  (define-key textmate-mode-map [A-return] 'textmate-next-line)
-  (define-key textmate-mode-map (kbd "A-M-t") 'textmate-clear-cache)
-  (define-key textmate-mode-map (kbd "A-M-]") 'align)
-  (define-key textmate-mode-map (kbd "A-M-[") 'indent-according-to-mode)
-  (define-key textmate-mode-map (kbd "A-]") 'indent-region)
-  (define-key textmate-mode-map (kbd "A-/") 'comment-or-uncomment-region-or-line)
-  (define-key osx-key-mode-map (kbd "A-t") 'textmate-goto-file)     ;; Need `osx-key-mode-map' to override 
-  (define-key osx-key-mode-map (kbd "A-T") 'textmate-goto-symbol))  ;; Aquamacs menu item key bindings.
-
-(defun textmate-bind-carbon-keys ()
-  ;; Are these any good? Anyone have good Carbon defaults?
-  (define-key textmate-mode-map [M-return] 'textmate-next-line)
-;  (define-key textmate-mode-map (kbd "A-M-t") 'textmate-clear-cache)  
-;  (define-key textmate-mode-map [(meta ])] 'align)
-;  (define-key textmate-mode-map (kbd "A-M-[") 'indent-according-to-mode)
-;  (define-key textmate-mode-map (kbd "A-/") 'comment-region-or-line)  
-  (define-key textmate-mode-map [(control tab)] 'indent-region)
-  (define-key textmate-mode-map [(meta t)] 'textmate-goto-file)
-  (define-key textmate-mode-map [(meta T)] 'textmate-goto-symbol))
+  ; weakness until i figure out how to do this right
+  (when (boundp 'osx-key-mode-map)
+    (define-key osx-key-mode-map (kbd "A-t") 'textmate-goto-file)
+    (define-key osx-key-mode-map (kbd "A-T") 'textmate-goto-symbol)) 
+ 
+  (let ((member) (i 0) (access (if (boundp 'aquamacs-version) 'cadr 'caddr)))
+    (setq member (nth i *textmate-keybindings-list*))
+    (while member
+      (if (funcall access member)
+       (define-key *textmate-mode-map* (funcall access member) (car member)))
+      (setq member (nth i *textmate-keybindings-list*))
+      (setq i (+ i 1)))))
 
 (defun textmate-completing-read (&rest args)
-  (let ((reading-fn (cadr (assoc textmate-completing-library textmate-completing-function-alist))))
+  (let ((reading-fn (cadr (assoc textmate-completing-library *textmate-completing-function-alist*))))
   (apply (symbol-function reading-fn) args)))
 
 ;;; Commands
@@ -152,14 +161,17 @@
            (position (cdr (assoc selected-symbol name-and-pos))))
       (goto-char position))))
 
-(defun textmate-goto-file (&optional starting)
+(defun textmate-goto-file ()
   (interactive)
-  (when (null (textmate-set-project-root)) 
-    (error "Can't find any .git directory"))
-  (find-file (concat (expand-file-name *textmate-project-root*) "/"
-                     (textmate-completing-read "Find file: " 
-                                          (or (textmate-cached-project-files) 
-                                              (textmate-cache-project-files *textmate-project-root*))))))
+  (let ((root (textmate-project-root)))
+    (when (null root) 
+      (error "Can't find any .git directory"))
+    (find-file 
+     (concat 
+      (expand-file-name root) "/"
+      (textmate-completing-read 
+       "Find file: "
+       (textmate-cached-project-files root))))))
 
 (defun textmate-clear-cache ()
   (interactive)
@@ -171,39 +183,33 @@
 
 (defun textmate-project-files (root)
   (split-string 
-   (shell-command-to-string 
-    (concat 
-     "find " 
-     root
-     " -type f  | grep -vE '"
-     *textmate-gf-exclude*
-     "' | sed 's:"
-     *textmate-project-root* 
-     "/::'")) "\n" t))
+    (shell-command-to-string 
+     (concat 
+      "find " 
+      root
+      " -type f  | grep -vE '"
+      *textmate-gf-exclude*
+      "' | sed 's:"
+      *textmate-project-root* 
+      "/::'")) "\n" t))
 
-(defun textmate-cache-project-files (root)
-  (let ((files (textmate-project-files root)))
-    (setq *textmate-project-files* `(,root . ,files))
-    files))
-
-(defun textmate-cached-project-files ()
-  (when (and 
-         textmate-use-file-cache
-         (not (null *textmate-project-files*))
-         (equal *textmate-project-root* (car *textmate-project-files*)))
-    (cdr *textmate-project-files*)))
+(defun textmate-cached-project-files (&optional root)
+  (cond
+   ((null textmate-use-file-cache) (textmate-project-files root))
+   ((equal (textmate-project-root) (car *textmate-project-files*))
+    (cdr *textmate-project-files*))
+   (t (cdr (setq *textmate-project-files* 
+                 `(,root . ,(textmate-project-files root)))))))
 
 (defun textmate-project-root ()
-  (or (textmate-set-project-root) *textmate-project-root*))
-
-(defun textmate-set-project-root ()
   (when (or 
          (null *textmate-project-root*) 
          (not (string-match *textmate-project-root* default-directory)))
     (let ((root (textmate-find-project-root)))
       (if root
           (setq *textmate-project-root* (expand-file-name (concat root "/")))
-        (setq *textmate-project-root* nil)))))
+        (setq *textmate-project-root* nil))))
+  *textmate-project-root*)
 
 (defun textmate-find-project-root (&optional root)
   (when (null root) (setq root default-directory))
@@ -214,12 +220,15 @@
 
 ;;;###autoload
 (define-minor-mode textmate-mode "TextMate Emulation Minor Mode"
-  :lighter " mate" :global t :keymap textmate-mode-map
+  :lighter " mate" :global t :keymap *textmate-mode-map*
   (textmate-bind-keys)
   ; activate preferred completion library
-  (dolist (mode textmate-completing-minor-mode-alist)
-    (when (eq (car mode) textmate-completing-library)
-        (funcall (cadr mode) t))))
+  (dolist (mode *textmate-completing-minor-mode-alist*)
+    (if (eq (car mode) textmate-completing-library)
+        (funcall (cadr mode) t)
+      (when (fboundp 
+             (cadr (assoc (car mode) *textmate-completing-function-alist*)))
+        (funcall (cadr mode) -1)))))
 
 (provide 'textmate)
 ;;; textmate.el ends here
