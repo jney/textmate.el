@@ -97,7 +97,9 @@
                                       ,(kbd "A-T")   [(meta T)])))
 
 (defvar *textmate-project-root-p*
-  #'(lambda (coll) (member ".git" coll))
+  #'(lambda (coll) (or (member ".git" coll)
+                       (member ".hg" coll)
+                       ))
   "*Lambda that, given a collection of directory entries, returns
   non-nil if it represents the project root.")
 
