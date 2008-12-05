@@ -186,6 +186,11 @@
 
 ;;; Utilities
 
+(defun textmate-also-ignore (pattern)
+  "Also ignore PATTERN in project files."
+  (setq *textmate-gf-exclude*
+    (concat *textmate-gf-exclude* "|" pattern)))
+
 (defun textmate-project-files (root)
   (split-string
     (shell-command-to-string
