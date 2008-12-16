@@ -96,7 +96,7 @@
                                      (textmate-goto-symbol
                                       ,(kbd "A-T")   [(meta T)])
 				     (textmate-toggle-camel-case
-				      ,(kbd "C-_")   [(control _))))
+				      ,(kbd "C-_")   [(control _)])))
 
 (defvar *textmate-project-root-p*
   #'(lambda (coll) (or (member ".git" coll)
