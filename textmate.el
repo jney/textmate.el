@@ -105,6 +105,9 @@
   "*Lambda that, given a collection of directory entries, returns
   non-nil if it represents the project root.")
 
+(defvar *textmate-find-in-project-default* nil)
+(defvar *textmate-find-in-project-type-default* nil)
+
 ;;; Bindings
 
 (defun textmate-ido-fix ()
@@ -181,6 +184,48 @@
       (textmate-completing-read
        "Find file: "
        (textmate-cached-project-files root))))))
+
+(defun textmate-find-in-project-type ()
+  (interactive)
+  (let ((pat (read-string (concat "Suffix"
+                                  (if *textmate-find-in-project-type-default*
+                                      (format " [\"%s\"]" *textmate-find-in-project-type-default*)
+                                    "")
+                                  ": "
+                                  ) nil nil *textmate-find-in-project-type-default*)))
+    (setq *textmate-find-in-project-type-default* pat)
+    (textmate-find-in-project (concat "*." pat))))
+
+(defun textmate-find-in-project (&optional pattern)
+  (interactive)
+  (let ((root (textmate-project-root))
+        (default *textmate-find-in-project-default*)
+        )
+    (when (null root)
+      (error "Not in a project area."))
+    (let ((re (read-string (concat "Search for "
+                         (if (and default (> (length default) 0))
+                             (format "[\"%s\"]" default)) ": ")
+                 nil 'textmate-find-in-project-history default)
+              )
+          (incpat (if pattern pattern "*")))
+      (append textmate-find-in-project-history (list re))
+      (setq *textmate-find-in-project-default* re)
+      (compilation-start (concat "cd " root "; egrep -nR --exclude='"
+                                               *textmate-gf-exclude*
+                                               "' --include='"
+                                               incpat
+                                               "' '"
+                                               re
+                                               "' . | grep -vE '"
+                                               *textmate-gf-exclude*
+                                               "' | sed s:./::"
+                                               )
+                         'grep-mode
+                                       )
+    )
+  ))
+
 
 (defun textmate-clear-cache ()
   (interactive)
