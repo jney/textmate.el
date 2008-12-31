@@ -76,8 +76,6 @@
 (defvar *textmate-mode-map* (make-sparse-keymap))
 (defvar *textmate-project-root* nil)
 (defvar *textmate-project-files* '())
-(defvar *textmate-gf-exclude* 
-  "/\\.|vendor|fixtures|tmp|log|build|\\.xcodeproj|\\.nib|\\.framework|\\.app|\\.pbproj|\\.pbxproj|\\.xcode|\\.xcodeproj|\\.bundle")
 
 (defvar *textmate-keybindings-list* `((textmate-next-line 
                                      [A-return]    [M-return])
@@ -184,14 +182,7 @@
 (defun textmate-project-files (root)
   (split-string 
     (shell-command-to-string 
-     (concat 
-      "find " 
-      root
-      " -type f  | grep -vE '"
-      *textmate-gf-exclude*
-      "' | sed 's:"
-      *textmate-project-root* 
-      "/::'")) "\n" t))
+     (concat "cd " root " && git ls-files")) "\n" t))
 
 (defun textmate-cached-project-files (&optional root)
   (cond
