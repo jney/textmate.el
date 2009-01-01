@@ -13,7 +13,6 @@ TextMate Minor Mode
     ;;  ⌥⌘] - Align Assignments
     ;;  ⌥⌘[ - Indent Line
     ;;  ⌘RET - Insert Newline at Line's End
-    ;;  ⌥⌘T - Reset File Cache (for Go to File)
     
     ;; A "project" in textmate-mode is determined by the presence of
     ;; a .git directory. If no .git directory is found in your current

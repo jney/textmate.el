@@ -27,7 +27,6 @@
 ;;  ⌥⌘] - Align Assignments
 ;;  ⌥⌘[ - Indent Line
 ;;  ⌘RET - Insert Newline at Line's End
-;;  ⌥⌘T - Reset File Cache (for Go to File)
 
 ;; A "project" in textmate-mode is determined by the presence of
 ;; a .git directory. If no .git directory is found in your current
@@ -56,9 +55,6 @@
 
 ;;; Minor mode
 
-(defvar textmate-use-file-cache t
-  "* Should `textmate-goto-file' keep a local cache of files?")
-
 (defvar textmate-completing-library 'ido 
   "The library `textmade-goto-symbol' and `textmate-goto-file' should use for completing filenames and symbols (`ido' by default)")
 
@@ -79,8 +75,6 @@
 
 (defvar *textmate-keybindings-list* `((textmate-next-line 
                                      [A-return]    [M-return])
-                                     (textmate-clear-cache 
-                                      ,(kbd "A-M-t") [(control c)(control t)])
                                      (align 
                                       ,(kbd "A-M-]") [(control c)(control a)])
                                      (indent-according-to-mode 
@@ -161,7 +155,7 @@
 
 (defun textmate-goto-file ()
   (interactive)
-  (let ((root (textmate-project-root)))
+  (let ((root (textmate-find-project-root)))
     (when (null root) 
       (error "Can't find any .git directory"))
     (find-file 
@@ -169,13 +163,7 @@
       (expand-file-name root) "/"
       (textmate-completing-read 
        "Find file: "
-       (textmate-cached-project-files root))))))
-
-(defun textmate-clear-cache ()
-  (interactive)
-  (setq *textmate-project-root* nil)
-  (setq *textmate-project-files* nil)
-  (message "textmate-mode cache cleared."))
+       (textmate-project-files root))))))
 
 ;;; Utilities
 
@@ -183,24 +171,6 @@
   (split-string 
     (shell-command-to-string 
      (concat "cd " root " && git ls-files")) "\n" t))
-
-(defun textmate-cached-project-files (&optional root)
-  (cond
-   ((null textmate-use-file-cache) (textmate-project-files root))
-   ((equal (textmate-project-root) (car *textmate-project-files*))
-    (cdr *textmate-project-files*))
-   (t (cdr (setq *textmate-project-files* 
-                 `(,root . ,(textmate-project-files root)))))))
-
-(defun textmate-project-root ()
-  (when (or 
-         (null *textmate-project-root*) 
-         (not (string-match *textmate-project-root* default-directory)))
-    (let ((root (textmate-find-project-root)))
-      (if root
-          (setq *textmate-project-root* (expand-file-name (concat root "/")))
-        (setq *textmate-project-root* nil))))
-  *textmate-project-root*)
 
 (defun textmate-find-project-root (&optional root)
   (when (null root) (setq root default-directory))
