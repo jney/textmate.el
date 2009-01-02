@@ -27,7 +27,7 @@
 ;;  ⌥⌘] - Align Assignments
 ;;  ⌥⌘[ - Indent Line
 ;;  ⌘RET - Insert Newline at Line's End
-;;  ⌥⌘T - Reset File Cache (for Go to File)
+;;  ⌥⌘T - Reset File Cache (for Go to File, cache unused if using git/hg root)
 
 ;; A "project" in textmate-mode is determined by the presence of
 ;; a .git directory. If no .git directory is found in your current
@@ -183,7 +183,7 @@
       (expand-file-name root) "/"
       (textmate-completing-read
        "Find file: "
-       (textmate-cached-project-files root))))))
+       (textmate-project-files root))))))
 
 (defun textmate-find-in-project-type ()
   (interactive)
@@ -211,21 +211,27 @@
           (incpat (if pattern pattern "*")))
       (append textmate-find-in-project-history (list re))
       (setq *textmate-find-in-project-default* re)
-      (compilation-start (concat "cd " root "; egrep -nR --exclude='"
-                                               *textmate-gf-exclude*
-                                               "' --include='"
-                                               incpat
-                                               "' '"
-                                               re
-                                               "' . | grep -vE '"
-                                               *textmate-gf-exclude*
-                                               "' | sed s:./::"
-                                               )
-                         'grep-mode
-                                       )
-    )
-  ))
-
+      (let ((type (textmate-project-root-type root)))
+        (let ((command
+            (cond ((not (string= type "unknown"))
+                   (concat "cd "
+                           root
+                           " ; "
+                           (cond ((string= type "git") "git ls-files")
+                                 ((string= type "hg") "hg manifest"))
+                           " | xargs grep -nR '" re "'"))
+                  (t (concat "cd " root "; egrep -nR --exclude='"
+                            *textmate-gf-exclude*
+                            "' --include='"
+                            incpat
+                            "' '"
+                            re
+                            "' . | grep -vE '"
+                            *textmate-gf-exclude*
+                            "' | sed s:./::"
+                            )))))
+                  (compilation-start command 'grep-mode)))
+  )))
 
 (defun textmate-clear-cache ()
   (interactive)
@@ -267,7 +273,24 @@
   (setq *textmate-gf-exclude*
     (concat *textmate-gf-exclude* "|" pattern)))
 
+(defun textmate-project-root-type (root)
+  (cond ((member ".git" (directory-files root)) "git")
+        ((member ".hg" (directory-files root)) "hg")
+        (t "unknown")
+   ))
+
 (defun textmate-project-files (root)
+  (let ((type (textmate-project-root-type root)))
+    (cond ((string= type "git") (split-string
+                           (shell-command-to-string
+                            (concat "cd " root " && git ls-files")) "\n" t))
+          ((string= type "hg") (split-string
+                          (shell-command-to-string
+                           (concat "cd " root " && hg manifest")) "\n" t))
+          ((string= type "unknown") (textmate-cached-project-files-find root))
+  )))
+
+(defun textmate-project-files-find (root)
   (split-string
     (shell-command-to-string
      (concat
@@ -279,7 +302,7 @@
       *textmate-project-root*
       "/::'")) "\n" t))
 
-(defun textmate-cached-project-files (&optional root)
+(defun textmate-cached-project-files-find (&optional root)
   (cond
    ((null textmate-use-file-cache) (textmate-project-files root))
    ((equal (textmate-project-root) (car *textmate-project-files*))
