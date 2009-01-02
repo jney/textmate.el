@@ -219,7 +219,9 @@
                            " ; "
                            (cond ((string= type "git") "git ls-files")
                                  ((string= type "hg") "hg manifest"))
-                           " | xargs grep -nR '" re "'"))
+                           " | xargs grep -nR "
+                           (if pattern (concat " --include='" pattern "' ") "")
+                           "'" re "'"))
                   (t (concat "cd " root "; egrep -nR --exclude='"
                             *textmate-gf-exclude*
                             "' --include='"
