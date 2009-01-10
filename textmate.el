@@ -197,7 +197,7 @@ is a comment, uncomment."
   (let ((root (textmate-project-root)))
     (message "FOUND ROOT")
     (when (null root)
-      (error "Can't find any .git directory"))
+      (error "Can't find project root"))
     (find-file
      (concat
       (expand-file-name root) "/"
