@@ -175,22 +175,18 @@ is a comment, uncomment."
                              (cond
                               ((and (listp symbol) (imenu--subalist-p symbol))
                                (addsymbols symbol))
-
                               ((listp symbol)
                                (setq name (car symbol))
                                (setq position (cdr symbol)))
-
                               ((stringp symbol)
                                (setq name symbol)
                                (setq position (get-text-property 1 'org-imenu-marker symbol))))
-
                              (unless (or (null position) (null name))
                                (add-to-list 'symbol-names name)
                                (add-to-list 'name-and-pos (cons name position))))))))
       (addsymbols imenu--index-alist))
-    (let* ((selected-symbol (textmate-completing-read "Symbol: " symbol-names))
-           (position (cdr (assoc selected-symbol name-and-pos))))
-      (goto-char position))))
+    (let* ((selected-symbol (textmate-completing-read "Symbol: " symbol-names)))
+           (imenu (assoc selected-symbol name-and-pos)))))
 
 (defun textmate-goto-file ()
   (interactive)
