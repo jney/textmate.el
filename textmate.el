@@ -95,8 +95,8 @@
                                       ,(kbd "A-t")   [(meta t)])
                                      (textmate-goto-symbol
                                       ,(kbd "A-T")   [(meta T)])
-				     (textmate-toggle-camel-case
-				      ,(kbd "C-_")   [(control _)])))
+                                     (textmate-toggle-camel-case
+                                      ,(kbd "C-_")   [(control _)])))
 
 (defvar *textmate-project-root-p*
   #'(lambda (coll) (or (member ".git" coll)
@@ -221,14 +221,14 @@
                                  ((string= type "hg") "hg manifest"))
                            " | xargs grep -nR "
                            (if pattern (concat " --include='" pattern "' ") "")
-                           "'" re "'"))
+                           (shell-quote-argument re)))
                   (t (concat "cd " root "; egrep -nR --exclude='"
                             *textmate-gf-exclude*
                             "' --include='"
                             incpat
-                            "' '"
-                            re
-                            "' . | grep -vE '"
+                            "' "
+                            (shell-quote-argument re)
+                            " . | grep -vE '"
                             *textmate-gf-exclude*
                             "' | sed s:./::"
                             )))))
@@ -246,27 +246,27 @@
   (interactive)
   (if (thing-at-point 'word)
       (progn
-	(unless (looking-at "\\<") (backward-sexp))
-	(let ((case-fold-search nil)
-	      (start (point))
-	      (end (save-excursion (forward-sexp) (point))))
-	  (if (and (looking-at "[a-z0-9_]+") (= end (match-end 0))) ; snake-case
-	      (progn
-		(goto-char start)
-		(while (re-search-forward "_[a-z]" end t)
-		  (goto-char (1- (point)))
-		  (delete-char -1)
-		  (upcase-region (point) (1+ (point)))
-		  (setq end (1- end))))
-	    (downcase-region (point) (1+ (point)))
-	    (while (re-search-forward "[A-Z][a-z]" end t)
-	      (forward-char -2)
-	      (insert "_")
-	      (downcase-region (point) (1+ (point)))
-	      (forward-char 1)
-	      (setq end (1+ end)))
-	    (downcase-region start end)
-	    )))))
+        (unless (looking-at "\\<") (backward-sexp))
+        (let ((case-fold-search nil)
+              (start (point))
+              (end (save-excursion (forward-sexp) (point))))
+          (if (and (looking-at "[a-z0-9_]+") (= end (match-end 0))) ; snake-case
+              (progn
+                (goto-char start)
+                (while (re-search-forward "_[a-z]" end t)
+                  (goto-char (1- (point)))
+                  (delete-char -1)
+                  (upcase-region (point) (1+ (point)))
+                  (setq end (1- end))))
+            (downcase-region (point) (1+ (point)))
+            (while (re-search-forward "[A-Z][a-z]" end t)
+              (forward-char -2)
+              (insert "_")
+              (downcase-region (point) (1+ (point)))
+              (forward-char 1)
+              (setq end (1+ end)))
+            (downcase-region start end)
+            )))))
 
 ;;; Utilities
 
