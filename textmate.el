@@ -89,7 +89,7 @@
                                       ,(kbd "A-M-[") nil)
                                      (indent-region
                                       ,(kbd "A-]")   [(control tab)])
-                                     (comment-or-uncomment-region-or-line
+                                     (textmate-comment-or-uncomment-region-or-line-or-blank-line
                                       ,(kbd "A-/")   [(control c)(control k)])
                                      (textmate-goto-file
                                       ,(kbd "A-t")   [(meta t)])
@@ -341,6 +341,20 @@
       (when (fboundp
              (cadr (assoc (car mode) *textmate-completing-function-alist*)))
         (funcall (cadr mode) -1)))))
+
+(defun textmate-comment-or-uncomment-region-or-line-or-blank-line ()
+  "If the curent line is blank, add a char, comment line, then delete char"
+  (interactive)
+  ;; If region is active, carry on
+  (if mark-active
+      (comment-or-uncomment-region-or-line)
+    ;; Otherwise do an ugly hack, add char then delete it
+    (if (and (eolp) (bolp))
+        (list
+         (insert "_")
+         (comment-or-uncomment-region-or-line)
+         (delete-char -1))
+      (comment-or-uncomment-region-or-line))))
 
 (provide 'textmate)
 ;;; textmate.el ends here
