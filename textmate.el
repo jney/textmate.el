@@ -356,5 +356,18 @@
          (delete-char -1))
       (comment-or-uncomment-region-or-line))))
 
+(defun duplicate-current-line ()
+  (interactive)
+  (beginning-of-line nil)
+  (let ((b (point)))
+    (end-of-line nil)
+    (copy-region-as-kill b (point)))
+  (beginning-of-line 2)
+  (open-line 1)
+  (yank)
+  (back-to-indentation))
+
+(define-key osx-key-mode-map "\C-cd" 'duplicate-current-line)
+
 (provide 'textmate)
 ;;; textmate.el ends here
