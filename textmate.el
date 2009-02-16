@@ -97,7 +97,7 @@
                                       ,(kbd "A-t")   [(meta t)])
                                      (textmate-goto-symbol
                                       ,(kbd "A-T")   [(meta T)])
-                                     (textmate-duplicate-current-line
+                                     (textmate-duplicate-region-or-line
                                       ,(kbd "C-c d")   [(meta T)])
                                      (textmate-toggle-camel-case
                                       ,(kbd "C-_")   [(control _)])))
@@ -364,17 +364,17 @@ A place is considered `tab-width' character columns."
          (delete-char -1))
       (comment-or-uncomment-region-or-line))))
 
-(defun duplicate-region (beginning end)
+(defun textmate-duplicate-region (beginning end)
   (interactive "r")
   (copy-region-as-kill beginning end)
   (yank)
   (back-to-indentation))
 
-(defun duplicate-region-or-line (beginning end)
+(defun textmate-duplicate-region-or-line (beginning end)
   "Checks for a lack of region, otherwise calls duplicate-region"
   (interactive "r")
   (if mark-active
-      (duplicate-region beginning end)
+      (textmate-duplicate-region beginning end)
     (list
      (beginning-of-line)
      (kill-line)
@@ -385,8 +385,6 @@ A place is considered `tab-width' character columns."
      (end-of-line)
      (back-to-indentation)
      (forward-char))))
-
-(define-key osx-key-mode-map "\C-cd" 'duplicate-region-or-line)
 
 ;;;###autoload
 (define-minor-mode textmate-mode "TextMate Emulation Minor Mode"
