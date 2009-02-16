@@ -350,18 +350,6 @@ A place is considered `tab-width' character columns."
   (interactive)
   (textmate-shift-right (* -1 (or arg 1))))
 
-;;;###autoload
-(define-minor-mode textmate-mode "TextMate Emulation Minor Mode"
-  :lighter " mate" :global t :keymap *textmate-mode-map*
-  (textmate-bind-keys)
-  ; activate preferred completion library
-  (dolist (mode *textmate-completing-minor-mode-alist*)
-    (if (eq (car mode) textmate-completing-library)
-        (funcall (cadr mode) t)
-      (when (fboundp
-             (cadr (assoc (car mode) *textmate-completing-function-alist*)))
-        (funcall (cadr mode) -1)))))
-
 (defun textmate-comment-or-uncomment-region-or-line-or-blank-line ()
   "If the curent line is blank, add a char, comment line, then delete char"
   (interactive)
@@ -387,6 +375,17 @@ A place is considered `tab-width' character columns."
   (yank)
   (back-to-indentation))
 
+;;;###autoload
+(define-minor-mode textmate-mode "TextMate Emulation Minor Mode"
+  :lighter " mate" :global t :keymap *textmate-mode-map*
+  (textmate-bind-keys)
+  ; activate preferred completion library
+  (dolist (mode *textmate-completing-minor-mode-alist*)
+    (if (eq (car mode) textmate-completing-library)
+        (funcall (cadr mode) t)
+      (when (fboundp
+             (cadr (assoc (car mode) *textmate-completing-function-alist*)))
+        (funcall (cadr mode) -1)))))
 
 (provide 'textmate)
 ;;; textmate.el ends here
