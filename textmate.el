@@ -374,18 +374,29 @@ A place is considered `tab-width' character columns."
          (delete-char -1))
       (comment-or-uncomment-region-or-line))))
 
-(defun duplicate-current-line ()
-  (interactive)
-  (beginning-of-line nil)
-  (let ((b (point)))
-    (end-of-line nil)
-    (copy-region-as-kill b (point)))
-  (beginning-of-line 2)
-  (open-line 1)
+(defun duplicate-region (beginning end)
+  (interactive "r")
+  (copy-region-as-kill beginning end)
   (yank)
   (back-to-indentation))
 
-(define-key osx-key-mode-map "\C-cd" 'duplicate-current-line)
+(defun duplicate-region-or-line (beginning end)
+  "Checks for a lack of region, otherwise calls duplicate-region"
+  (interactive "r")
+  (if mark-active
+      (duplicate-region beginning end)
+    (list
+     (beginning-of-line)
+     (kill-line)
+     (yank)
+     (newline)
+     (yank)
+     (set-mark (point))
+     (end-of-line)
+     (back-to-indentation)
+     (forward-char))))
+
+(define-key osx-key-mode-map "\C-cd" 'duplicate-region-or-line)
 
 (provide 'textmate)
 ;;; textmate.el ends here
