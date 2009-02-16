@@ -97,6 +97,8 @@
                                       ,(kbd "A-t")   [(meta t)])
                                      (textmate-goto-symbol
                                       ,(kbd "A-T")   [(meta T)])
+                                     (textmate-duplicate-current-line
+                                      ,(kbd "C-c d")   [(meta T)])
                                      (textmate-toggle-camel-case
                                       ,(kbd "C-_")   [(control _)])))
 
@@ -385,7 +387,6 @@ A place is considered `tab-width' character columns."
   (yank)
   (back-to-indentation))
 
-(define-key osx-key-mode-map "\C-cd" 'duplicate-current-line)
 
 (provide 'textmate)
 ;;; textmate.el ends here
