@@ -386,6 +386,27 @@ A place is considered `tab-width' character columns."
      (back-to-indentation)
      (forward-char))))
 
+(defmacro make-command-to-insert-unicode-char (char name)
+  "Creates a function to add a given char"
+  `(defun ,(intern (format "textmate-insert-unicode-char-%s" (eval name))) ()
+      ,(format "Inserts the character %s" (eval char))
+      (interactive)
+      (insert ,(eval char))))
+
+(defvar textmate-unicode-pairs 
+  '(("⌘" "cmd")
+    ("⇧" "shift")
+    ("⌥" "alt")
+    ("⌃" "ctrl")
+    ("⎋" "esc")
+    ("⌫" "backspace")
+    ("⌦" "forward-delete")
+    ("⇆" "tab"))
+  "Pairs ofcharacters and their name for easy insertion")
+
+(dolist (pair textmate-unicode-pairs)
+  (make-command-to-insert-unicode-char (first pair) (second pair)))
+
 ;;;###autoload
 (define-minor-mode textmate-mode "TextMate Emulation Minor Mode"
   :lighter " mate" :global t :keymap *textmate-mode-map*
