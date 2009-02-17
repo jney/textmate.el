@@ -27,6 +27,7 @@
 ;;  ⌥⌘] - Align Assignments
 ;;  ⌥⌘[ - Indent Line
 ;;  ⌘RET - Insert Newline at Line's End
+;;  ⌃C D - Duplicate Line
 ;;  ⌥⌘T - Reset File Cache (for Go to File, cache unused if using git/hg root)
 
 ;; A "project" in textmate-mode is determined by the presence of
