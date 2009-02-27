@@ -335,6 +335,25 @@
    ((equal (expand-file-name root) "/") nil)
    (t (textmate-find-project-root (concat (file-name-as-directory root) "..")))))
 
+(defun textmate-shift-left (start end &optional count)
+  "Similar to textmate's unindent.  It reduces the indent by either `tab-width` or as much as it can without reducing the relative indent of the block.
+
+If you really want to remove all indentation including relative indentation, use `indent-rigidly` with a large prefix argument."
+  (interactive "r")
+  (if (not mark-active)
+      (list 
+       (setq start (line-beginning-position))
+       (setq end (line-end-position))))
+  ;;   (indent-rigidly start end tab-width)
+  (setq min-indentation '())
+  (save-excursion
+    (goto-char start)
+    (while (< (point) end)
+      (if (not (looking-at "[ \t]*$"))
+          (add-to-list 'min-indentation (current-indentation)))
+      (forward-line)))
+  (indent-rigidly start end (* (or count -1) (min (apply 'min min-indentation) tab-width))))
+
 (defun textmate-shift-right (&optional arg)
   "Shift the line or region to the ARG places to the right.
 
@@ -345,11 +364,6 @@ A place is considered `tab-width' character columns."
                  (line-beginning-position)))
         (end (or (and mark-active (region-end)) (line-end-position))))
     (indent-rigidly beg end (* (or arg 1) tab-width))))
-
-(defun textmate-shift-left (&optional arg)
-  "Shift the line or region to the ARG places to the left."
-  (interactive)
-  (textmate-shift-right (* -1 (or arg 1))))
 
 (defun textmate-comment-or-uncomment-region-or-line-or-blank-line ()
   "If the curent line is blank, add a char, comment line, then delete char"
