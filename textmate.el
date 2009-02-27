@@ -142,6 +142,20 @@
 
 ;;; Commands
 
+(defun textmate-comment-or-uncomment-region-or-line-or-blank-line ()
+  "If the curent line is blank, add a char, comment line, then delete char"
+  (interactive)
+  ;; If region is active, carry on
+  (if mark-active
+      (comment-or-uncomment-region-or-line)
+    ;; Otherwise do an ugly hack, add char then delete it
+    (if (and (eolp) (bolp))
+        (list
+         (insert "_")
+         (comment-or-uncomment-region-or-line)
+         (delete-char -1))
+      (comment-or-uncomment-region-or-line))))
+
 (defun textmate-next-line ()
   (interactive)
   (end-of-line)
@@ -365,19 +379,26 @@ A place is considered `tab-width' character columns."
         (end (or (and mark-active (region-end)) (line-end-position))))
     (indent-rigidly beg end (* (or arg 1) tab-width))))
 
-(defun textmate-comment-or-uncomment-region-or-line-or-blank-line ()
-  "If the curent line is blank, add a char, comment line, then delete char"
-  (interactive)
-  ;; If region is active, carry on
-  (if mark-active
-      (comment-or-uncomment-region-or-line)
-    ;; Otherwise do an ugly hack, add char then delete it
-    (if (and (eolp) (bolp))
-        (list
-         (insert "_")
-         (comment-or-uncomment-region-or-line)
-         (delete-char -1))
-      (comment-or-uncomment-region-or-line))))
+(defun textmate-shift-left (start end &optional count)
+  "Based on python-shift-left.  Checks the current tab-count and then calls python-shift-left with it."
+  (interactive "r")
+  (if (not mark-active)
+      (list 
+       (setq start (line-beginning-position))
+       (setq end (line-end-position))))
+  ;;   (indent-rigidly start end tab-width)
+  (let ((indentations (list tab-width))) 
+    (save-excursion
+      (goto-char start)
+      (while (< (point) end)
+        (if (not (looking-at "[ \t]*$"))
+            (add-to-list 'indentations (current-indentation)))
+        (forward-line)))
+    (let ((min-indentation (apply 'min indentations)))
+      (if (> min-indentation 0)
+          (indent-rigidly start end (* (or count -1) (min min-indentation tab-width)))
+        (error "Can't unindent anymore.  Try indent-rigidly with a negative argument"))))
+  (setq deactivate-mark nil))
 
 (defun textmate-duplicate-region (beginning end)
   (interactive "r")
