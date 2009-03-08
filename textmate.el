@@ -100,7 +100,7 @@
                                      (textmate-goto-symbol
                                       ,(kbd "A-T")   [(meta T)])
                                      (textmate-duplicate-region-or-line
-                                      ,(kbd "C-c d")   [(meta T)])
+                                      ,(kbd "C-D")   [(control shift d)])
                                      (textmate-remove-current-line
                                       ,(kbd "C-K")   [(control shift k)])
                                      (textmate-toggle-camel-case
