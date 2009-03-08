@@ -28,6 +28,7 @@
 ;;  ⌥⌘[ - Indent Line
 ;;  ⌘RET - Insert Newline at Line's End
 ;;  ⌃C D - Duplicate Line
+;;    ⌃K - Delete current line
 ;;  ⌥⌘T - Reset File Cache (for Go to File, cache unused if using git/hg root)
 
 ;; A "project" in textmate-mode is determined by the presence of
@@ -100,6 +101,8 @@
                                       ,(kbd "A-T")   [(meta T)])
                                      (textmate-duplicate-region-or-line
                                       ,(kbd "C-c d")   [(meta T)])
+                                     (textmate-remove-current-line
+                                      ,(kbd "C-K")   [(control shift k)])
                                      (textmate-toggle-camel-case
                                       ,(kbd "C-_")   [(control _)])))
 
@@ -199,6 +202,25 @@ is a comment, uncomment."
            (position (cdr (assoc selected-symbol name-and-pos))))
       (goto-char position))))
 
+;; http://homepages.inf.ed.ac.uk/s0243221/emacs/
+(defvar previous-column nil "Save the column position")
+(defun textmate-remove-current-line()
+  "Kill an entire line, including the trailing newline character"
+  (interactive)
+
+  (setq previous-column (current-column))
+
+  (end-of-line)
+
+  (if (= (current-column) 0)
+    (delete-char 1)
+
+    (progn
+      (beginning-of-line)
+      (kill-line)
+      (delete-char 1)
+      (move-to-column previous-column))))
+;;      
 (defun textmate-goto-file ()
   (interactive)
   (let ((root (textmate-project-root)))
