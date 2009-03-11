@@ -106,6 +106,7 @@
 (defvar *textmate-project-root-p*
   #'(lambda (coll) (or (member ".git" coll)
                        (member ".hg" coll)
+                       (member "prj.el" coll)
                        ))
   "*Lambda that, given a collection of directory entries, returns
   non-nil if it represents the project root.")
@@ -141,6 +142,24 @@
   (apply (symbol-function reading-fn) args)))
 
 ;;; Commands
+(defun comment-or-uncomment-line (&optional lines)
+  "Comment current line. Argument gives the number of lines
+forward to comment"
+  (interactive "P")
+  (comment-or-uncomment-region
+   (line-beginning-position)
+   (line-end-position lines)))
+
+(defun comment-or-uncomment-region-or-line (&optional lines)
+  "If the line or region is not a comment, comments region
+if mark is active, line otherwise. If the line or region
+is a comment, uncomment."
+  (interactive "P")
+  (if mark-active
+      (if (< (mark) (point))
+          (comment-or-uncomment-region (mark) (point))
+        (comment-or-uncomment-region (point) (mark)))
+    (comment-or-uncomment-line lines)))
 
 (defun textmate-comment-or-uncomment-region-or-line-or-blank-line ()
   "If the curent line is blank, add a char, comment line, then delete char"
@@ -175,7 +194,6 @@
                              (cond
                               ((and (listp symbol) (imenu--subalist-p symbol))
                                (addsymbols symbol))
-
                               ((listp symbol)
                                (setq name (car symbol))
                                (setq position (cdr symbol)))
@@ -183,20 +201,19 @@
                               ((stringp symbol)
                                (setq name symbol)
                                (setq position (get-text-property 1 'org-imenu-marker symbol))))
-
                              (unless (or (null position) (null name))
                                (add-to-list 'symbol-names name)
                                (add-to-list 'name-and-pos (cons name position))))))))
       (addsymbols imenu--index-alist))
-    (let* ((selected-symbol (textmate-completing-read "Symbol: " symbol-names))
-           (position (cdr (assoc selected-symbol name-and-pos))))
-      (goto-char position))))
+    (let* ((selected-symbol (textmate-completing-read "Symbol: " symbol-names)))
+           (imenu (assoc selected-symbol name-and-pos)))))
 
 (defun textmate-goto-file ()
   (interactive)
   (let ((root (textmate-project-root)))
+    (message "FOUND ROOT")
     (when (null root)
-      (error "Can't find any .git directory"))
+      (error "Can't find project root"))
     (find-file
      (concat
       (expand-file-name root) "/"
@@ -220,6 +237,7 @@
   (let ((root (textmate-project-root))
         (default *textmate-find-in-project-default*)
         )
+    (message "textmate-find-in-project")
     (when (null root)
       (error "Not in a project area."))
     (let ((re (read-string (concat "Search for "
@@ -237,7 +255,8 @@
                            root
                            " ; "
                            (cond ((string= type "git") "git ls-files")
-                                 ((string= type "hg") "hg manifest"))
+                                 ((string= type "hg") "hg manifest")
+                                 ((string= type "ls") "ls"))
                            " | xargs grep -nR "
                            (if pattern (concat " --include='" pattern "' ") "")
                            (shell-quote-argument re)))
@@ -245,14 +264,13 @@
                             *textmate-gf-exclude*
                             "' --include='"
                             incpat
-                            "' "
-                            (shell-quote-argument re)
-                            " . | grep -vE '"
+                            "' '"
+                            re
+                            "' . | grep -vE '"
                             *textmate-gf-exclude*
                             "' | sed s:./::"
                             )))))
-                  (compilation-start command 'grep-mode)))
-  )))
+                  (compilation-start command 'grep-mode))))))
 
 (defun textmate-clear-cache ()
   (interactive)
@@ -265,27 +283,27 @@
   (interactive)
   (if (thing-at-point 'word)
       (progn
-        (unless (looking-at "\\<") (backward-sexp))
-        (let ((case-fold-search nil)
-              (start (point))
-              (end (save-excursion (forward-sexp) (point))))
-          (if (and (looking-at "[a-z0-9_]+") (= end (match-end 0))) ; snake-case
-              (progn
-                (goto-char start)
-                (while (re-search-forward "_[a-z]" end t)
-                  (goto-char (1- (point)))
-                  (delete-char -1)
-                  (upcase-region (point) (1+ (point)))
-                  (setq end (1- end))))
-            (downcase-region (point) (1+ (point)))
-            (while (re-search-forward "[A-Z][a-z]" end t)
-              (forward-char -2)
-              (insert "_")
-              (downcase-region (point) (1+ (point)))
-              (forward-char 1)
-              (setq end (1+ end)))
-            (downcase-region start end)
-            )))))
+	(unless (looking-at "\\<") (backward-sexp))
+	(let ((case-fold-search nil)
+	      (start (point))
+	      (end (save-excursion (forward-sexp) (point))))
+	  (if (and (looking-at "[a-z0-9_]+") (= end (match-end 0))) ; snake-case
+	      (progn
+		(goto-char start)
+		(while (re-search-forward "_[a-z]" end t)
+		  (goto-char (1- (point)))
+		  (delete-char -1)
+		  (upcase-region (point) (1+ (point)))
+		  (setq end (1- end))))
+	    (downcase-region (point) (1+ (point)))
+	    (while (re-search-forward "[A-Z][a-z]" end t)
+	      (forward-char -2)
+	      (insert "_")
+	      (downcase-region (point) (1+ (point)))
+	      (forward-char 1)
+	      (setq end (1+ end)))
+	    (downcase-region start end)
+	    )))))
 
 ;;; Utilities
 
@@ -297,19 +315,28 @@
 (defun textmate-project-root-type (root)
   (cond ((member ".git" (directory-files root)) "git")
         ((member ".hg" (directory-files root)) "hg")
+        (t "ls")
         (t "unknown")
    ))
 
 (defun textmate-project-files (root)
   (let ((type (textmate-project-root-type root)))
+    (message "SEARCHING FILES")
     (cond ((string= type "git") (split-string
                            (shell-command-to-string
                             (concat "cd " root " && git ls-files")) "\n" t))
           ((string= type "hg") (split-string
-                          (shell-command-to-string
+                                (shell-command-to-string
                            (concat "cd " root " && hg manifest")) "\n" t))
-          ((string= type "unknown") (textmate-cached-project-files-find root))
-  )))
+          ((string= type "ls") (split-string
+                                (shell-command-to-string
+                                 (concat 
+                                  "find " root " -type f  | grep -vE '" 
+                                  *textmate-gf-exclude* 
+                                  "' | sed 's:" 
+                                  *textmate-project-root* 
+                                  "/::'")) "\n" t))
+          ((string= type "unknown") (textmate-cached-project-files-find root)))))
 
 (defun textmate-project-files-find (root)
   (split-string
