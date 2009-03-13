@@ -376,24 +376,24 @@ is a comment, uncomment."
    ((equal (expand-file-name root) "/") nil)
    (t (textmate-find-project-root (concat (file-name-as-directory root) "..")))))
 
-(defun textmate-shift-left (start end &optional count)
+(defun textmate-shift-left (&optional count)
   "Similar to textmate's unindent.  It reduces the indent by either `tab-width` or as much as it can without reducing the relative indent of the block.
 
 If you really want to remove all indentation including relative indentation, use `indent-rigidly` with a large prefix argument."
-  (interactive "r")
-  (if (not mark-active)
-      (list 
-       (setq start (line-beginning-position))
-       (setq end (line-end-position))))
-  ;;   (indent-rigidly start end tab-width)
-  (setq min-indentation '())
-  (save-excursion
-    (goto-char start)
-    (while (< (point) end)
-      (if (not (looking-at "[ \t]*$"))
-          (add-to-list 'min-indentation (current-indentation)))
-      (forward-line)))
-  (indent-rigidly start end (* (or count -1) (min (apply 'min min-indentation) tab-width))))
+  (interactive)
+  (let ((deactivate-mark nil)
+        (beg (or (and mark-active (region-beginning)) (line-beginning-position)))
+        (end (or (and mark-active (region-end)) (line-end-position))))
+    (setq min-indentation '())
+    (save-excursion
+      (goto-char beg)
+      (while (< (point) end)
+        (if (not (looking-at "[ \t]*$"))
+            (add-to-list 'min-indentation (current-indentation)))
+        (forward-line)))
+    (if (not (< 0 (apply 'min min-indentation)))
+        (error "Can't indent any more.  Try `indent-rigidly` with a negative arg."))
+    (indent-rigidly beg end (* (or count -1) (min (apply 'min min-indentation) tab-width)))))
 
 (defun textmate-shift-right (&optional arg)
   "Shift the line or region to the ARG places to the right.
@@ -405,27 +405,6 @@ A place is considered `tab-width' character columns."
                  (line-beginning-position)))
         (end (or (and mark-active (region-end)) (line-end-position))))
     (indent-rigidly beg end (* (or arg 1) tab-width))))
-
-(defun textmate-shift-left (start end &optional count)
-  "Based on python-shift-left.  Checks the current tab-count and then calls python-shift-left with it."
-  (interactive "r")
-  (if (not mark-active)
-      (list 
-       (setq start (line-beginning-position))
-       (setq end (line-end-position))))
-  ;;   (indent-rigidly start end tab-width)
-  (let ((indentations (list tab-width))) 
-    (save-excursion
-      (goto-char start)
-      (while (< (point) end)
-        (if (not (looking-at "[ \t]*$"))
-            (add-to-list 'indentations (current-indentation)))
-        (forward-line)))
-    (let ((min-indentation (apply 'min indentations)))
-      (if (> min-indentation 0)
-          (indent-rigidly start end (* (or count -1) (min min-indentation tab-width)))
-        (error "Can't unindent anymore.  Try indent-rigidly with a negative argument"))))
-  (setq deactivate-mark nil))
 
 (defun textmate-duplicate-region (beginning end)
   (interactive "r")
