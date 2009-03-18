@@ -90,21 +90,25 @@
                                      (indent-according-to-mode
                                       ,(kbd "A-M-[") nil)
                                      (textmate-shift-right
-                                      ,(kbd "A-]")   [(control tab)])
+                                      ,(kbd "A-]")   [(alt tab)]) ;; FIXME
                                      (textmate-shift-left
-                                      ,(kbd "A-[")   [(control shift tab)])
+                                      ,(kbd "A-[")   [(alt shift tab)])
                                      (textmate-comment-or-uncomment-region-or-line-or-blank-line
-                                      ,(kbd "A-/")   [(control c)(control k)])
+                                      ,(kbd "A-/")   [?\A-/]) ;; FIXME
                                      (textmate-goto-file
-                                      ,(kbd "A-t")   [(meta t)])
+                                      ,(kbd "A-t")   [?\A-t])
                                      (textmate-goto-symbol
-                                      ,(kbd "A-T")   [(meta T)])
+                                      ,(kbd "A-T")   [?\A-T])
                                      (textmate-duplicate-region-or-line
                                       ,(kbd "C-D")   [(control shift d)])
                                      (textmate-remove-current-line
                                       ,(kbd "C-K")   [(control shift k)])
                                      (textmate-toggle-camel-case
-                                      ,(kbd "C-_")   [(control _)])))
+                                      ,(kbd "C-_")   [(control _)])
+                                     (upcase-region
+                                      ,(kbd "A-u")   [?\A-u])
+                                     (downcase-region
+                                      ,(kbd "A-U")   [?\A-U])))
 
 (defvar *textmate-project-root-p*
   #'(lambda (coll) (or (member ".git" coll)
@@ -491,6 +495,10 @@ A place is considered `tab-width' character columns."
 
 (dolist (pair textmate-unicode-pairs)
   (make-command-to-insert-unicode-char (first pair) (second pair)))
+
+;; auto accept upcase and downcase methods
+(put 'upcase-region 'disabled nil)
+(put 'downcase-region 'disabled nil)
 
 ;;;###autoload
 (define-minor-mode textmate-mode "TextMate Emulation Minor Mode"
