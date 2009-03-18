@@ -90,9 +90,9 @@
                                      (indent-according-to-mode
                                       ,(kbd "A-M-[") nil)
                                      (textmate-shift-right
-                                      ,(kbd "A-]")   [(alt tab)]) ;; FIXME
+                                      ,(kbd "A-]")   [(control tab)])
                                      (textmate-shift-left
-                                      ,(kbd "A-[")   [(alt shift tab)])
+                                      ,(kbd "A-[")   [(control shift tab)])
                                      (textmate-comment-or-uncomment-region-or-line-or-blank-line
                                       ,(kbd "A-/")   [?\A-/]) ;; FIXME
                                      (textmate-goto-file
